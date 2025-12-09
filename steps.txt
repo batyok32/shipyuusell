@@ -1,0 +1,34 @@
+DNS Cloudflare
+yuusell.wa@gmail.com
+L(Z[gjYb2v7k%;}
+
+Easyship needs sign up, id verification (1-2 days), webhook setup 
+EASYSHIP_API_KEY=
+EASYSHIP_API_URL=
+EASYSHIP_WEBHOOK_SECRET=
+(webhook should be setup to domain/api/v1/logistics/easyship-webhook/)
+
+Stripe needs registration and verification and webhook setup
+STRIPE_SECRET_KEY=
+STRIPE_PUBLISHABLE_KEY=
+STRIPE_WEBHOOK_SECRET=
+
+Google and facebook developer accounts should be registered for oauth
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+FACEBOOK_APP_ID=
+FACEBOOK_APP_SECRET=
+
+
+Admin 
+https://shipapi.yuusell.com/admin/login/?next=/admin/
+
+Main page 
+https://ship.yuusell.com
+
+Videos:
+https://youtu.be/tYRaZKAJ3AE
+https://youtu.be/_X_NlIWl5FI
+
+Code:
+https://github.com/batyok32/shipyuusell.git

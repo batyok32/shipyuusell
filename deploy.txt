@@ -1,0 +1,370 @@
+ssh root@37.27.30.138
+
+sudo apt update && apt upgrade -y
+sudo apt install python3-pip python3-dev libpq-dev postgresql python3-virtualenv postgresql-contrib nginx curl -y
+
+
+
+git clone https://github.com/batyok32/shipyuusell.git
+
+Setup .env files 
+cd shipyuusell/backend/
+mv env.example .env
+Set all variables 
+
+cd shipyuusell/frontend/
+mv env.local .env.local
+
+VENV
+cd /root/shipyuusell/
+apt-get install python3-venv
+python3 -m venv env
+source env/bin/activate
+cd backend
+pip install -r requirements.txt 
+
+
+For postgresql 
+
+sudo -u postgres psql
+CREATE DATABASE yuusell_db;
+CREATE USER yuusell_user WITH PASSWORD 'R+0xxRA8&Xj4Xu*&';
+ALTER ROLE yuusell_user SET client_encoding TO 'utf8';
+ALTER ROLE yuusell_user SET default_transaction_isolation TO 'read committed';
+ALTER ROLE yuusell_user SET timezone TO 'UTC';
+GRANT ALL PRIVILEGES ON DATABASE yuusell_db TO yuusell_user;
+GRANT ALL ON SCHEMA public TO yuusell_user;
+GRANT CREATE ON SCHEMA public TO yuusell_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO yuusell_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO yuusell_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO yuusell_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO yuusell_user;
+GRANT ALL ON SCHEMA public TO yuusell_user;
+GRANT CREATE ON SCHEMA public TO yuusell_user;
+
+-- Grant permissions on existing objects
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO yuusell_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO yuusell_user;
+
+-- Set default privileges for future objects
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO yuusell_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO yuusell_user;
+
+-- For PostgreSQL 15+, you may also need to grant usage on the schema
+GRANT USAGE ON SCHEMA public TO yuusell_user;
+
+-- Optional but recommended: make the user the owner of the database
+ALTER DATABASE yuusell_db OWNER TO yuusell_user;
+
+\q
+
+
+Create migrations folder in each app 
+
+for app in accounts buying logistics payments vehicles warehouse; do
+    mkdir -p "$app/migrations"
+    touch "$app/migrations/__init__.py"
+    echo "✓ Created migrations folder in $app"
+done
+
+
+python manage.py makemigrations
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py collectstatic
+
+
+python manage.py runserver 0.0.0.0:8000
+
+pip install gunicorn
+gunicorn --bind 0.0.0.0:8000 config.wsgi
+
+
+Gunicorn socket
+sudo nano /etc/systemd/system/gunicorn.socket
+
+[Unit]
+Description=gunicorn socket
+
+[Socket]
+ListenStream=/run/gunicorn.sock
+
+[Install]
+WantedBy=sockets.target
+
+
+sudo nano /etc/systemd/system/gunicorn.service
+
+[Unit]
+Description=gunicorn daemon
+Requires=gunicorn.socket
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/root/shipyuusell/backend
+ExecStart=/root/shipyuusell/env/bin/gunicorn \
+          --access-logfile /root/shipyuusell/backend/logs/gunicorn-access.log \
+          --error-logfile /root/shipyuusell/backend/logs/gunicorn-error.log \
+          --log-level debug \
+          --workers 3 \
+          --bind unix:/run/gunicorn.sock \
+          config.wsgi:application
+
+[Install]
+WantedBy=multi-user.target
+
+
+mkdir -p /root/shipyuusell/backend/logs
+touch /root/shipyuusell/backend/logs/gunicorn-access.log
+touch /root/shipyuusell/backend/logs/gunicorn-error.log
+touch /root/shipyuusell/backend/logs/django-debug.log
+touch /root/shipyuusell/backend/logs/django-error.log
+chown -R root:root /root/shipyuusell/backend/logs
+chmod -R 755 /root/shipyuusell/backend/logs
+
+
+For monitoring
+tail -f /root/shipyuusell/backend/logs/gunicorn-error.log
+tail -f /root/shipyuusell/backend/logs/django-error.log
+
+
+
+sudo systemctl start gunicorn.socket
+sudo systemctl enable gunicorn.socket
+
+Проверка файла сокета Gunicorn
+
+sudo systemctl status gunicorn.socket
+
+
+FIX BUGS IF exists
+file /run/gunicorn.sock
+
+Output
+/run/gunicorn.sock: socket
+
+Если команда systemctl status указывает на ошибку, а также если в каталоге отсутствует файл gunicorn.sock, это означает, что сокет Gunicorn не удалось создать корректно. Проверьте журналы сокета Gunicorn с помощью следующей команды:
+sudo journalctl -u gunicorn.socket
+
+
+sudo systemctl start gunicorn.service 
+sudo systemctl enable gunicorn.service 
+sudo systemctl status gunicorn
+sudo journalctl -u gunicorn
+
+sudo systemctl daemon-reload
+sudo systemctl restart gunicorn
+
+
+cd /var/www
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+nvm install --lts
+
+or 
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+# Now try installing the LTS version of Node.js
+nvm install --lts
+
+
+cd /root/shipyuusell/frontend/
+
+
+apt install npm
+sudo apt update && apt upgrade -y
+
+npm install pm2 -g
+npm install -d
+npm run build
+pm2 start npm --name "yuusell" -- start 
+pm2 restart yuusell
+
+nano /etc/nginx/nginx.conf
+make user www-data -> root  
+
+sudo nano /etc/nginx/sites-available/default
+
+server {
+    listen 80;
+    server_name shipapi.yuusell.com;
+
+    client_max_body_size 100M;
+
+    location /static/ {
+        autoindex on;
+        alias /root/shipyuusell/backend/staticfiles/; 
+    } 
+
+    location /media/ {
+        autoindex on;
+        alias /root/shipyuusell/backend/media/; 
+    } 
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/run/gunicorn.sock;
+    }
+}
+
+if USE_S3 = TRUE:
+
+server {
+    listen 80;
+    server_name api.yuusell.com;
+
+    client_max_body_size 100M;
+
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/run/gunicorn.sock;
+    }
+}
+
+server {
+    listen 80;
+    server_name ship.yuusell.com;
+
+    gzip on;
+    gzip_proxied any;
+    gzip_types application/javascript application/x-javascript text/css text/javascript;
+    gzip_comp_level 5;
+    gzip_buffers 16 8k;
+    gzip_min_length 256;
+
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+
+sudo apt-get install python3-certbot-nginx
+
+
+certbot -n --nginx --redirect  -d shipapi.yuusell.com -d ship.yuusell.com -m aaa@gmail.com --agree-tos
+
+
+sudo nginx -t
+sudo systemctl restart nginx
+sudo tail -F /var/log/nginx/error.log
+
+
+
+pm2 restart all
+
+
+sudo apt install redis-server
+sudo systemctl status redis
+
+
+No celery right now but it can stay for future use
+sudo nano /etc/default/celeryd
+
+#  Names of nodes to start
+# most people will only start one node:
+CELERYD_NODES = "worker1"
+# Absolute or relative path to the 'celery' command:
+CELERY_BIN = "/root/env/bin/celery"
+# App instance to use
+CELERY_APP = "config"
+# How to call manage.py
+CELERYD_MULTI = "multi"
+# Extra command-line arguments to the worker
+CELERYD_OPTS = "--concurrency=8"
+# Set logging level to DEBUG
+CELERYD_LOG_LEVEL = "DEBUG"
+# %n will be replaced with the first part of the nodename.
+CELERYD_LOG_FILE = "/var/log/celery/%n%I.log"
+CELERYD_PID_FILE = "/var/run/celery/%n.pid"
+CELERYBEAT_PID_FILE = "/var/run/celery/beat.pid"
+CELERYBEAT_LOG_FILE = "/var/log/celery/beat.log"
+# Workers should run as an unprivileged user.
+# You need to create this user manually (or you can choose
+# a user/group combination that already exists (e.g., nobody).
+CELERYD_USER = "root"
+CELERYD_GROUP = "root"
+# If enabled pid and log directories will be created if missing,
+# and owned by the userid/group configured.
+CELERY_CREATE_DIRS = 1
+
+sudo mkdir -p /var/log/celery/
+sudo mkdir -p /var/run/celery/
+
+sudo chown -R root:root /var/log/celery/
+sudo chown -R root:root /var/run/celery/
+
+sudo nano /etc/systemd/system/celery.service
+
+[Unit]
+Description=Celery Service
+After=network.target
+
+[Service]
+Type=forking
+User=root
+Group=root
+
+EnvironmentFile=/etc/default/celeryd
+WorkingDirectory=/root/backend
+ExecStart=/root/env/bin/celery multi start ${CELERYD_NODES} \
+  -A ${CELERY_APP} --pidfile=${CELERYD_PID_FILE} \
+  --logfile=${CELERYD_LOG_FILE} --loglevel=${CELERYD_LOG_LEVEL} ${CELERYD_OPTS}
+ExecStop=/root/env/bin/celery ${CELERY_BIN} multi stopwait ${CELERYD_NODES} \
+  --pidfile=${CELERYD_PID_FILE}
+ExecReload=/root/env/bin/celery ${CELERY_BIN} multi restart ${CELERYD_NODES} \
+  -A ${CELERY_APP} --pidfile=${CELERYD_PID_FILE} \
+  --logfile=${CELERYD_LOG_FILE} --loglevel=${CELERYD_LOG_LEVEL} ${CELERYD_OPTS}
+
+[Install]
+WantedBy=multi-user.target
+
+sudo nano /etc/systemd/system/celerybeat.service
+
+[Unit]
+Description=Celery Beat Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+EnvironmentFile=/etc/default/celeryd
+WorkingDirectory=/root/backend
+ExecStart=/root/env/bin/celery -A config beat --pidfile=/var/run/celery/celerybeat.pid --logfile=/var/log/celery/celerybeat.log --loglevel=info
+
+[Install]
+WantedBy=multi-user.target
+
+
+sudo systemctl daemon-reload
+sudo systemctl enable celery
+sudo systemctl restart celery
+
+sudo systemctl enable celerybeat
+sudo systemctl start celerybeat
+sudo systemctl status celerybeat
+
+
+
+
+
+sudo systemctl daemon-reload
+systemctl restart gunicorn.service
+systemctl restart nginx
+systemctl restart gunicorn.socket
+systemctl restart celery.service
+systemctl restart celerybeat.service
+pm2 restart yuusell
+
+
+
