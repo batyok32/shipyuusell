@@ -1,0 +1,124 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .confirm-action-container {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 30px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .package-info {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .package-info h3 {
+        margin-top: 0;
+        color: #417690;
+    }
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+    .info-item {
+        background: white;
+        padding: 10px;
+        border-radius: 4px;
+    }
+    .info-item label {
+        font-weight: bold;
+        color: #666;
+        display: block;
+        margin-bottom: 5px;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+    .info-item span {
+        color: #333;
+        font-size: 14px;
+    }
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    .btn-confirm {
+        flex: 1;
+        padding: 12px 24px;
+        background: #417690;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    .btn-confirm:hover {
+        background: #205067;
+    }
+    .btn-cancel {
+        flex: 1;
+        padding: 12px 24px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+    }
+    .btn-cancel:hover {
+        background: #5a6268;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="confirm-action-container">
+    <h1>{{ title }}</h1>
+    
+    <div class="package-info">
+        <h3>📦 Package Information</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Reference Number</label>
+                <span><strong>{{ package.reference_number }}</strong></span>
+            </div>
+            <div class="info-item">
+                <label>Current Status</label>
+                <span>{{ package.get_status_display }}</span>
+            </div>
+            <div class="info-item">
+                <label>User</label>
+                <span>{{ package.user.email }}</span>
+            </div>
+            {% if package.shipment %}
+            <div class="info-item">
+                <label>Shipment Number</label>
+                <span>{{ package.shipment.shipment_number }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <p>Are you sure you want to mark this package as <strong>{{ title|lower|cut:"mark package as " }}</strong>?</p>
+        
+        <div class="action-buttons">
+            <button type="submit" class="btn-confirm">✅ Confirm</button>
+            <a href="{% url 'admin:logistics_package_change' package.id %}" class="btn-cancel">❌ Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

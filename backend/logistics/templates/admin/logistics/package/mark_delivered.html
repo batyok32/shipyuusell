@@ -1,0 +1,218 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .mark-delivered-container {
+        max-width: 900px;
+        margin: 20px auto;
+        padding: 30px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .package-info {
+        background: #e8f4f8;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .package-info h3 {
+        margin-top: 0;
+        color: #417690;
+    }
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+    .info-item {
+        background: white;
+        padding: 10px;
+        border-radius: 4px;
+    }
+    .info-item label {
+        font-weight: bold;
+        color: #666;
+        display: block;
+        margin-bottom: 5px;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+    .info-item span {
+        color: #333;
+        font-size: 14px;
+    }
+    .delivery-form {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: #333;
+    }
+    .form-group input[type="file"] {
+        width: 100%;
+        padding: 8px;
+        border: 2px dashed #ddd;
+        border-radius: 4px;
+        background: #f8f9fa;
+    }
+    .photo-upload-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    .photo-upload-item {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 4px;
+        border: 2px dashed #ddd;
+    }
+    .photo-upload-item label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 12px;
+        color: #666;
+    }
+    .submit-button {
+        background: #059669;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 20px;
+    }
+    .submit-button:hover {
+        background: #047857;
+    }
+    .btn-cancel {
+        padding: 12px 24px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        margin-left: 10px;
+    }
+    .btn-cancel:hover {
+        background: #5a6268;
+    }
+    .warning-box {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    .warning-box strong {
+        color: #856404;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mark-delivered-container">
+    <h1>✅ Mark Package as Delivered</h1>
+    
+    <div class="warning-box">
+        <strong>⚠️ Important:</strong> Please upload delivery photos before marking as delivered. This will also update the linked shipment status to "delivered" and create a tracking update.
+    </div>
+    
+    <div class="package-info">
+        <h3>📦 Package Information</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Reference Number</label>
+                <span><strong>{{ package.reference_number }}</strong></span>
+            </div>
+            <div class="info-item">
+                <label>Current Status</label>
+                <span>{{ package.get_status_display }}</span>
+            </div>
+            <div class="info-item">
+                <label>User</label>
+                <span>{{ package.user.email }}</span>
+            </div>
+            {% if package.shipment %}
+            <div class="info-item">
+                <label>Shipment Number</label>
+                <span>{{ package.shipment.shipment_number }}</span>
+            </div>
+            <div class="info-item">
+                <label>Destination</label>
+                <span>
+                    {% if package.shipment.destination_address %}
+                        {{ package.shipment.destination_address.city|default:"" }}{% if package.shipment.destination_address.state_province %}, {{ package.shipment.destination_address.state_province }}{% endif %}
+                        {{ package.shipment.destination_address.country|default:"" }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="delivery-form">
+        <h3>📸 Upload Delivery Photos</h3>
+        <p class="text-muted">Upload photos taken when the package was delivered to the customer (up to 5 photos)</p>
+        
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label>Delivery Photos *</label>
+                <div class="photo-upload-grid">
+                    <div class="photo-upload-item">
+                        <label>Photo 1</label>
+                        <input type="file" name="delivery_photo_1" accept="image/*">
+                    </div>
+                    <div class="photo-upload-item">
+                        <label>Photo 2</label>
+                        <input type="file" name="delivery_photo_2" accept="image/*">
+                    </div>
+                    <div class="photo-upload-item">
+                        <label>Photo 3</label>
+                        <input type="file" name="delivery_photo_3" accept="image/*">
+                    </div>
+                    <div class="photo-upload-item">
+                        <label>Photo 4</label>
+                        <input type="file" name="delivery_photo_4" accept="image/*">
+                    </div>
+                    <div class="photo-upload-item">
+                        <label>Photo 5</label>
+                        <input type="file" name="delivery_photo_5" accept="image/*">
+                    </div>
+                </div>
+                <p class="text-muted" style="margin-top: 10px; font-size: 12px;">
+                    <strong>Note:</strong> At least one delivery photo is recommended to confirm delivery.
+                </p>
+            </div>
+            
+            <div class="action-buttons" style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="submit" class="submit-button">
+                    ✅ Mark as Delivered
+                </button>
+                <a href="{% url 'admin:logistics_package_change' package.id %}" class="btn-cancel">
+                    ❌ Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

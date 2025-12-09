@@ -1,0 +1,358 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .receive-package-container {
+        max-width: 900px;
+        margin: 20px auto;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .search-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+    }
+    .search-form {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+    }
+    .search-form input[type="text"] {
+        flex: 1;
+        padding: 12px;
+        font-size: 16px;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+    }
+    .search-form button {
+        padding: 12px 24px;
+        background: #417690;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+    .search-form button:hover {
+        background: #205067;
+    }
+    .package-info {
+        background: #e8f4f8;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .package-info h3 {
+        margin-top: 0;
+        color: #417690;
+    }
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+    .info-item {
+        background: white;
+        padding: 10px;
+        border-radius: 4px;
+    }
+    .info-item label {
+        font-weight: bold;
+        color: #666;
+        display: block;
+        margin-bottom: 5px;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+    .info-item span {
+        color: #333;
+        font-size: 14px;
+    }
+    .receiving-form {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: #333;
+    }
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    .form-group input[type="number"] {
+        max-width: 200px;
+    }
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+    }
+    .form-group textarea {
+        min-height: 80px;
+        resize: vertical;
+    }
+    .form-group input[type="file"] {
+        padding: 8px;
+        border: 2px dashed #ddd;
+        border-radius: 4px;
+        background: #f8f9fa;
+    }
+    .form-group input[type="checkbox"] {
+        width: auto;
+        margin-right: 8px;
+    }
+    .checkbox-group {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+    }
+    .submit-button {
+        background: #417690;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 20px;
+    }
+    .submit-button:hover {
+        background: #205067;
+    }
+    .error-message {
+        background: #fee;
+        color: #c33;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        border-left: 4px solid #c33;
+    }
+    .photo-upload-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    .photo-upload-item {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 4px;
+        border: 2px dashed #ddd;
+    }
+    .photo-upload-item label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 12px;
+        color: #666;
+    }
+    @media (max-width: 768px) {
+        .search-form {
+            flex-direction: column;
+        }
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+        .photo-upload-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="receive-package-container">
+    <h1>📦 Receive Package at Warehouse</h1>
+    
+    <!-- Search Section (only show if package not found) -->
+    {% if show_search %}
+    <div class="search-section">
+        <h2>Search by Reference Number</h2>
+        <form method="get" class="search-form">
+            <input 
+                type="text" 
+                name="ref" 
+                placeholder="Enter reference number (e.g., PKG-20251207-ABC123 or BS-20251207-ABC123)" 
+                value="{{ reference_number }}"
+                required
+                autofocus
+            >
+            <button type="submit">🔍 Search</button>
+        </form>
+    </div>
+    {% endif %}
+    
+    <!-- Error Message -->
+    {% if error %}
+    <div class="error-message">
+        <strong>Error:</strong> {{ error }}
+    </div>
+    {% endif %}
+    
+    <!-- Package Information -->
+    {% if package or buying_request %}
+    <div class="package-info">
+        <h3>📋 Package Information</h3>
+        <div class="info-grid">
+            {% if package %}
+            <div class="info-item">
+                <label>Package Reference Number</label>
+                <span><strong>{{ package.reference_number }}</strong></span>
+            </div>
+            <div class="info-item">
+                <label>Package Status</label>
+                <span>{{ package.get_status_display }}</span>
+            </div>
+            {% endif %}
+            {% if buying_request %}
+            <div class="info-item">
+                <label>Buying Request Reference</label>
+                <span>{{ buying_request.reference_number }}</span>
+            </div>
+            <div class="info-item">
+                <label>User</label>
+                <span>{{ buying_request.user.email }}</span>
+            </div>
+            <div class="info-item">
+                <label>Product</label>
+                <span>{{ buying_request.product_name|default:"N/A" }}</span>
+            </div>
+            <div class="info-item">
+                <label>Buying Request Status</label>
+                <span>{{ buying_request.get_status_display }}</span>
+            </div>
+            {% elif package %}
+            <div class="info-item">
+                <label>User</label>
+                <span>{{ package.user.email }}</span>
+            </div>
+            {% endif %}
+            {% if package and package.shipment %}
+            <div class="info-item">
+                <label>Shipment Number</label>
+                <span>{{ package.shipment.shipment_number }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Receiving Form -->
+    <div class="receiving-form">
+        <h3>✍️ Enter Receiving Details</h3>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="reference_number" value="{{ reference_number }}">
+            {% if package_id %}
+            <input type="hidden" name="package_id" value="{{ package_id }}">
+            {% endif %}
+            
+            <div class="form-group">
+                <label>Weight (kg) *</label>
+                <input type="number" name="weight" step="0.01" min="0" required 
+                       value="{% if package %}{{ package.weight }}{% endif %}" placeholder="e.g., 2.5">
+            </div>
+            
+            <div class="form-group">
+                <label>Dimensions (cm) *</label>
+                <div class="form-row">
+                    <input type="number" name="length" step="0.1" min="0" required 
+                           value="{% if package %}{{ package.length }}{% endif %}" placeholder="Length">
+                    <input type="number" name="width" step="0.1" min="0" required 
+                           value="{% if package %}{{ package.width }}{% endif %}" placeholder="Width">
+                    <input type="number" name="height" step="0.1" min="0" required 
+                           value="{% if package %}{{ package.height }}{% endif %}" placeholder="Height">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Storage Location *</label>
+                <input type="text" name="storage_location" required 
+                       value="{% if package %}{{ package.storage_location }}{% endif %}" 
+                       placeholder="e.g., A-12-B">
+            </div>
+            
+            <div class="form-group">
+                <label>Inbound Tracking Number</label>
+                <input type="text" name="tracking_number" 
+                       value="{% if package %}{{ package.tracking_number }}{% endif %}" 
+                       placeholder="Tracking number from carrier">
+            </div>
+            
+            <div class="form-group">
+                <label>Inspection Notes</label>
+                <textarea name="description" 
+                          placeholder="Any notes about package condition, contents, etc.">{% if package %}{{ package.description }}{% endif %}</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Inspection Flags</label>
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" name="damage_reported" id="damage_reported"
+                               {% if package and package.warehouse_receiving.damage_reported %}checked{% endif %}>
+                        <label for="damage_reported">Damage Reported</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" name="prohibited_items_found" id="prohibited_items_found"
+                               {% if package and package.warehouse_receiving.prohibited_items_found %}checked{% endif %}>
+                        <label for="prohibited_items_found">Prohibited Items Found</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Upload Photos (up to 5 photos)</label>
+                <div class="photo-upload-grid">
+                    <div class="photo-upload-item">
+                        <label>Photo 1</label>
+                        <input type="file" name="photo_1" accept="image/*">
+                    </div>
+                    <div class="photo-upload-item">
+                        <label>Photo 2</label>
+                        <input type="file" name="photo_2" accept="image/*">
+                    </div>
+                    <div class="photo-upload-item">
+                        <label>Photo 3</label>
+                        <input type="file" name="photo_3" accept="image/*">
+                    </div>
+                    <div class="photo-upload-item">
+                        <label>Photo 4</label>
+                        <input type="file" name="photo_4" accept="image/*">
+                    </div>
+                    <div class="photo-upload-item">
+                        <label>Photo 5</label>
+                        <input type="file" name="photo_5" accept="image/*">
+                    </div>
+                </div>
+            </div>
+            
+            <button type="submit" name="receive_package" class="submit-button">
+                ✅ Receive Package
+            </button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
